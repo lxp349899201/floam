@@ -129,7 +129,7 @@ void odom_estimation(int is_mapping){
 
             // publish odometry
             nav_msgs::Odometry laserOdometry;
-            laserOdometry.header.frame_id = "map";
+            laserOdometry.header.frame_id = "odom";
             laserOdometry.child_frame_id = "base_link";
             laserOdometry.header.stamp = pointcloud_time;
             laserOdometry.pose.pose.orientation.x = q_current.x();
