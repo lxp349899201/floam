@@ -20,6 +20,7 @@ class Lidar
         //by default is 100. pls do not change
         void setMaxDistance(double max_distance_in);
         void setMinDistance(double min_distance_in);
+        void setIsMapping(int is_mapping);
 
     	double max_distance;
         double min_distance;
@@ -30,6 +31,7 @@ class Lidar
         double horizontal_angle;
         double vertical_angle_resolution;
         double vertical_angle;
+        int is_mapping;
 };
 
 

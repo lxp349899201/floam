@@ -20,6 +20,7 @@ void OdomEstimationClass::init(lidar::Lidar lidar_param, double map_resolution){
     odom = Eigen::Isometry3d::Identity();
     last_odom = Eigen::Isometry3d::Identity();
     optimization_count=2;
+    is_mapping = lidar_param.is_mapping;
 }
 
 void OdomEstimationClass::initMapWithPoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_in){
@@ -76,7 +77,9 @@ void OdomEstimationClass::updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI
     odom = Eigen::Isometry3d::Identity();
     odom.linear() = q_w_curr.toRotationMatrix();
     odom.translation() = t_w_curr;
-    addPointsToMap(downsampledEdgeCloud,downsampledSurfCloud);
+    if(is_mapping) {
+        addPointsToMap(downsampledEdgeCloud,downsampledSurfCloud);
+    }
 
 }
 

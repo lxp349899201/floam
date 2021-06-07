@@ -23,6 +23,9 @@
     <param name="max_dis" type="double" value="90.0" />
     <param name="min_dis" type="double" value="3.0" />
 
+    <param name="is_mapping" type="int" value="0" />
+    <param name="feature_save_path" value="$(find floam)/featrues/" />
+
     <!--- -->
     <node pkg="floam" type="floam_odom_estimation_node" name="floam_odom_estimation_node" output="screen"/>
     <node pkg="floam" type="floam_laser_processing_node" name="floam_laser_processing_node" output="screen"/>

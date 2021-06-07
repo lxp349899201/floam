@@ -26,6 +26,8 @@
 #include "lidar.h"
 #include "odomEstimationClass.h"
 
+using namespace std;
+
 OdomEstimationClass odomEstimation;
 std::mutex mutex_lock;
 std::queue<sensor_msgs::PointCloud2ConstPtr> pointCloudEdgeBuf;
@@ -49,8 +51,25 @@ void velodyneEdgeHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 bool is_odom_inited = false;
 double total_time =0;
 int total_frame=0;
-void odom_estimation(){
-    while(1){
+
+int load_surf_and_edge_map(string feature_save_path) {
+    pcl::PointCloud<pcl::PointXYZI>::Ptr surf(new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr edge(new pcl::PointCloud<pcl::PointXYZI>());
+    if (pcl::io::loadPCDFile<pcl::PointXYZI>(feature_save_path + std::to_string(i) + "_surf.pcd", *surf) == -1) {
+        ROS_ERROR("load %s failed \n", feature_save_path + std::to_string(i) + "_surf.pcd");
+        return 0;
+    }
+    if (pcl::io::loadPCDFile<pcl::PointXYZI>(feature_save_path + std::to_string(i) + "_edge.pcd", *edge) == -1) {
+        ROS_ERROR("load %s failed \n", feature_save_path + std::to_string(i) + "_edge.pcd");
+        return 0;
+    }
+    odomEstimation.initMapWithPoints(edge, surf);
+    is_odom_inited = true;
+    return 1;
+}
+
+void odom_estimation(int is_mapping){
+    while(ros::ok()){
         if(!pointCloudEdgeBuf.empty() && !pointCloudSurfBuf.empty()){
 
             //read data
@@ -140,27 +159,45 @@ int main(int argc, char **argv)
     double max_dis = 60.0;
     double min_dis = 2.0;
     double map_resolution = 0.4;
+    int is_mapping = 0;
+    string feature_save_path = "";
+
     nh.getParam("/scan_period", scan_period); 
     nh.getParam("/vertical_angle", vertical_angle); 
     nh.getParam("/max_dis", max_dis);
     nh.getParam("/min_dis", min_dis);
     nh.getParam("/scan_line", scan_line);
     nh.getParam("/map_resolution", map_resolution);
+    nh.getParam("/is_mapping", is_mapping);
+    nh.getParam("/feature_save_path", feature_save_path);
 
     lidar_param.setScanPeriod(scan_period);
     lidar_param.setVerticalAngle(vertical_angle);
     lidar_param.setLines(scan_line);
     lidar_param.setMaxDistance(max_dis);
     lidar_param.setMinDistance(min_dis);
+    lidar_param.setIsMapping(is_mapping);
 
     odomEstimation.init(lidar_param, map_resolution);
     ros::Subscriber subEdgeLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/laser_cloud_edge", 100, velodyneEdgeHandler);
     ros::Subscriber subSurfLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/laser_cloud_surf", 100, velodyneSurfHandler);
 
     pubLaserOdometry = nh.advertise<nav_msgs::Odometry>("/odom", 100);
-    std::thread odom_estimation_process{odom_estimation};
+    if(!is_mapping && !load_surf_and_edge_map(feature_save_path)) {
+        return -1;
+    }
+    std::thread odom_estimation_process{odom_estimation, is_mapping};
 
     ros::spin();
+
+    if(is_mapping) {
+        printf("start to save features ... \n");
+        string surf_path = feature_save_path + std::to_string(i) + "_surf.pcd";
+        string edge_path = feature_save_path + std::to_string(i) + "_edge.pcd";
+        pcl::io::savePCDFile(surf_path, *(odomEstimation.laserCloudCornerMap), false);
+        pcl::io::savePCDFile(edge_path, *(odomEstimation.laserCloudSurfMap), false);
+        printf("save features success... \n");
+    }
 
     return 0;
 }

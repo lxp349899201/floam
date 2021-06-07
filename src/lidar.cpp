@@ -37,3 +37,7 @@ void lidar::Lidar::setMaxDistance(double max_distance_in){
 void lidar::Lidar::setMinDistance(double min_distance_in){
 	min_distance = min_distance_in;
 }
+
+void lidar::Lidar::setIsMapping(int is_mapping) {
+    is_mapping = is_mapping;
+}
