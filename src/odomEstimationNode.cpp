@@ -68,7 +68,9 @@ int load_surf_and_edge_map(string feature_save_path) {
     return 1;
 }
 
-void odom_estimation(int is_mapping){
+
+
+void odom_estimation(int is_mapping, int is_3d){
     while(ros::ok()){
         if(!pointCloudEdgeBuf.empty() && !pointCloudSurfBuf.empty()){
 
@@ -122,23 +124,48 @@ void odom_estimation(int is_mapping){
 
             static tf::TransformBroadcaster br;
             tf::Transform transform;
-            transform.setOrigin( tf::Vector3(t_current.x(), t_current.y(), t_current.z()) );
-            tf::Quaternion q(q_current.x(),q_current.y(),q_current.z(),q_current.w());
-            transform.setRotation(q);
-            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
+
+            if(is_3d) {
+                transform.setOrigin( tf::Vector3(t_current.x(), t_current.y(), t_current.z()) );
+                tf::Quaternion q(q_current.x(),q_current.y(),q_current.z(),q_current.w());
+                transform.setRotation(q);
+            } else {
+                transform.setOrigin( tf::Vector3(t_current.x(), t_current.y(), 0) );
+                tf::Quaternion q(q_current.x(),q_current.y(),q_current.z(),q_current.w());
+                double roll, pitch, yaw;
+                tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+                transform.setRotation(tf::createQuaternionMsgFromYaw(yaw));
+            }
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
 
             // publish odometry
             nav_msgs::Odometry laserOdometry;
             laserOdometry.header.frame_id = "odom";
             laserOdometry.child_frame_id = "base_link";
             laserOdometry.header.stamp = pointcloud_time;
-            laserOdometry.pose.pose.orientation.x = q_current.x();
-            laserOdometry.pose.pose.orientation.y = q_current.y();
-            laserOdometry.pose.pose.orientation.z = q_current.z();
-            laserOdometry.pose.pose.orientation.w = q_current.w();
-            laserOdometry.pose.pose.position.x = t_current.x();
-            laserOdometry.pose.pose.position.y = t_current.y();
-            laserOdometry.pose.pose.position.z = t_current.z();
+
+            if(is_3d) {
+                laserOdometry.pose.pose.orientation.x = q_current.x();
+                laserOdometry.pose.pose.orientation.y = q_current.y();
+                laserOdometry.pose.pose.orientation.z = q_current.z();
+                laserOdometry.pose.pose.orientation.w = q_current.w();
+                laserOdometry.pose.pose.position.x = t_current.x();
+                laserOdometry.pose.pose.position.y = t_current.y();
+                laserOdometry.pose.pose.position.z = t_current.z();
+            } else {
+                tf::Quaternion q(q_current.x(),q_current.y(),q_current.z(),q_current.w());
+                double roll, pitch, yaw;
+                tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+                Eigen::Quaterniond q_2d(tf::createQuaternionMsgFromYaw(yaw));
+                laserOdometry.pose.pose.orientation.x = q_2d.x();
+                laserOdometry.pose.pose.orientation.y = q_2d.y();
+                laserOdometry.pose.pose.orientation.z = q_2d.z();
+                laserOdometry.pose.pose.orientation.w = q_2d.w();
+
+                laserOdometry.pose.pose.position.x = t_current.x();
+                laserOdometry.pose.pose.position.y = t_current.y();
+                laserOdometry.pose.pose.position.z = 0;
+            }
             pubLaserOdometry.publish(laserOdometry);
 
         }
@@ -161,6 +188,7 @@ int main(int argc, char **argv)
     double map_resolution = 0.4;
     int is_mapping = 0;
     string feature_save_path = "";
+    int is_3d = 0;
 
     nh.getParam("/scan_period", scan_period); 
     nh.getParam("/vertical_angle", vertical_angle); 
@@ -170,6 +198,7 @@ int main(int argc, char **argv)
     nh.getParam("/map_resolution", map_resolution);
     nh.getParam("/is_mapping", is_mapping);
     nh.getParam("/feature_save_path", feature_save_path);
+    nh.getParam("/is_3d", is_3d);
 
     lidar_param.setScanPeriod(scan_period);
     lidar_param.setVerticalAngle(vertical_angle);
@@ -186,7 +215,7 @@ int main(int argc, char **argv)
     if(!is_mapping && !load_surf_and_edge_map(feature_save_path)) {
         return -1;
     }
-    std::thread odom_estimation_process{odom_estimation, is_mapping};
+    std::thread odom_estimation_process{odom_estimation, is_mapping, is_3d};
 
     ros::spin();
 

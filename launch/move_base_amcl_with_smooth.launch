@@ -1,52 +1,31 @@
 <launch>
 
-  <!-- 设置机器人在地图中的初始位置，用于初始化导航系统-->
-  <arg name="initial_pose_x" default="0"/>
-  <arg name="initial_pose_y" default="0"/>
-  <arg name="initial_pose_a" default="0"/>
-
-　<!-- 这个参数需要修改成建好的目标地图，并存放在floam/map目录下,默认值是floam-->
-  <arg name="map_name" default="floam"/>
-  
-  <!-- 保持与floam发布的里程计topic一致-->
-  <arg name="floam_odom_topic" default="/odom"/>
-
   <!-- 目标地图加载，发布地图话题-->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find floam)/map/$(arg map_name).yaml" respawn="false" >
-  <param name="frame_id" value="map"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find floam)/map/floam.yaml" respawn="false" >
+    <param name="frame_id" value="map"/>
   </node>
 
   <!-- 加载move_base，实现运动规划-->
-  <include file="$(find handsfree_2dnav)/move_base_config/move_base.xml">
-    <arg name="cmd_vel_topic" value="/move_base/cmd_vel"/> 
-    <arg name="odom_topic" value="$(arg floam_odom_topic)"/> 
-  </include>  
+  <include file="$(find handsfree_2dnav)/move_base_config/move_base.xml"/>
 
   <!-- 运动加减速平滑，move_base运动规划的速度不直接输出到机器人驱动，通过平滑节点后才输出到机器人驱动话题-->
+  <!-- TODO
   <arg name="node_name"             default="move_base_velocity_smoother"/>
   <arg name="nodelet_manager_name"  default="nodelet_manager_move_base"/>
-  <arg name="config_file"           default="$(find handsfree_bringup)/robot_para/velocity_smoother/$(arg model).yaml"/>
+  <arg name="config_file"           default="$(find floam)/nav/smooth.yaml"/>
   <arg name="raw_cmd_vel_topic"     default="/move_base/cmd_vel"/>
-  <arg name="smooth_cmd_vel_topic"  default="/mobile_base/mobile_base_controller/cmd_vel"/>
-  <arg name="robot_cmd_vel_topic"   default="/mobile_base/mobile_base_controller/cmd_vel"/>
-  <arg name="odom_topic"            default="$(arg floam_odom_topic)"/>
+  <arg name="smooth_cmd_vel_topic"  default="/cmd_vel"/>
+  <arg name="robot_cmd_vel_topic"   default="/cmd_vel"/>
+  <arg name="odom_topic"            default="/odom"/>
 
-  <!-- nodelet manager -->
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager"/>
-
   <node pkg="nodelet" type="nodelet" name="$(arg node_name)"
         args="load yocs_velocity_smoother/VelocitySmootherNodelet $(arg nodelet_manager_name)">
-        
-    <!-- parameters -->
     <rosparam file="$(arg config_file)" command="load"/>
-
-    <!-- velocity commands I/O -->
     <remap from="$(arg node_name)/raw_cmd_vel"    to="$(arg raw_cmd_vel_topic)"/>
     <remap from="$(arg node_name)/smooth_cmd_vel" to="$(arg smooth_cmd_vel_topic)"/>
-
-    <!-- Robot velocity feedbacks -->
     <remap from="$(arg node_name)/robot_cmd_vel"  to="$(arg robot_cmd_vel_topic)"/>
     <remap from="$(arg node_name)/odometry"       to="$(arg odom_topic)"/>
-  </node>
+  </node> -->
 
 </launch>

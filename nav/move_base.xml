@@ -3,9 +3,6 @@
   Example move_base configuration. Descriptions of parameters, as well as a full list of all amcl parameters, can be found at http://www.ros.org/wiki/move_base.
 -->
 
-  <arg name="cmd_vel_topic" default="/mobile_base/mobile_base_controller/cmd_vel"/>
-　<arg name="odom_topic" default="/mobile_base/mobile_base_controller/odom"/>
-
   <node pkg="move_base" type="move_base" respawn="false" name="move_base_node" output="screen">
     <param name="allow_unknown" value="false" />
     <param name="shutdown_costmaps" value="false" />
@@ -34,8 +31,8 @@
     <rosparam file="$(find floam)/nav/dwa_local_planner_params.yaml" command="load" />
     <!--rosparam file="$(find floam)/nav/teb_local_planner_params.yaml" command="load" /-->
 
-    <remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/>
-    <remap from="/odom"    to="$(arg odom_topic)"/> 
+    <!--<remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/>-->
+    <!--<remap from="/odom"    to="$(arg odom_topic)"/>--> 
  </node>
  
 </launch>

@@ -25,6 +25,7 @@
 
     <param name="is_mapping" type="int" value="0" />
     <param name="feature_save_path" value="$(find floam)/featrues/" />
+    <param name="is_3d" type="int" value="0" />
 
     <!--- -->
     <node pkg="floam" type="floam_odom_estimation_node" name="floam_odom_estimation_node" output="screen"/>
